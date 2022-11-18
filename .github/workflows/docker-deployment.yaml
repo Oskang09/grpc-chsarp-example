@@ -1,0 +1,49 @@
+name: Docker Deployment
+
+on:
+  push:
+    branches:
+    - sandbox
+    - master
+
+jobs:
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Prepare
+      id: prep
+      shell: bash
+      run: |
+        echo "::set-output name=branch::${GITHUB_REF#refs/heads/}"
+        echo "::set-output name=tag::$(echo $GITHUB_SHA | head -c7)"
+
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Setup Docker BuildX
+      uses: docker/setup-buildx-action@v1
+
+    - name: Install doctl
+      uses: "digitalocean/action-doctl@v2" 
+      with:
+        token: 8846deb5cfa4916dc91c52605271e331e551312bdcff83e06b67dad72232b550
+
+    - name: Login to DigitalOcean Kubernetes
+      run: doctl registry login --expiry-seconds 600
+    
+    - name: Push Image to DigitalOcean Container Registry
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        context: .
+        tags: "registry.digitalocean.com/${{ steps.prep.outputs.branch }}/company-service:${{ steps.prep.outputs.tag }}"
+        file: ./Deployment/${{ steps.prep.outputs.branch }}/Dockerfile
+
+    - name: Save Automated Certificate from DigitalOcean 
+      run: doctl kubernetes cluster kubeconfig save 5a5eeb9d-6a67-4637-9c7a-2a3fd7913d73
+      
+    - name: Deploy to DigitalOcean Kubernetes
+      run: |
+        kubectl apply -f ./Deployment/${{ steps.prep.outputs.branch }}/kubernetes.yaml
+        kubectl set image deployment/company-service company-service=registry.digitalocean.com/${{ steps.prep.outputs.branch }}/company-service:${{ steps.prep.outputs.tag }}

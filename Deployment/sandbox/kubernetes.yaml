@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: company-service
+  labels:
+    app: company-service
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: company-service
+  template:
+    metadata:
+      labels:
+        app: company-service
+    spec:
+      imagePullSecrets:
+        - name: do-registry
+      containers:
+        - name: company-service
+          image: registry.digitalocean.com/sandbox/company-service
+          imagePullPolicy: 'Always'
+          env:
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: DATABASE_PORT
+            - name: DATABASE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: DATABASE_USERNAME
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: DATABASE_PASSWORD
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: DATABASE_NAME
+            - name: JAEGER_AGENT_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: JAEGER_AGENT_HOST
+            - name: KUBEMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: KUBEMQ_HOST
+            - name: KUBEMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: global-env
+                  key: KUBEMQ_PORT
